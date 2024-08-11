@@ -1,0 +1,8 @@
+{
+  "urls": [
+    ["npyfile.py", "github:jonnor/micropython-npyfile/npyfile.py"]
+  ],
+  "deps": [
+  ],
+  "version": "0.1"
+}
