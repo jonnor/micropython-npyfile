@@ -31,9 +31,58 @@ Or just copy the `npyfile.py` file to your MicroPython device.
 
 ## Usage
 
-See the [tests](./tests)
+#### Save a file (simple)
 
-`TODO: Add a couple of examples`
+```python
+
+import array
+import npyfile
+
+shape = (10, 4)
+data = array.array('f', (1.0 for _ in range(shape[0]*shape[1])))
+
+npyfile.save('mydata.npy', data, shape)
+```
+
+#### Load a file (simple)
+
+```python
+
+import npyfile
+shape, data = npyfile.load('mydata.npy')
+
+print(shape)
+print(data)
+```
+
+#### Streaming read
+
+Streaming/chunked reading can be used to keep memory usage low.
+
+```python
+import npyfile
+
+with npyfile.Reader('mydata.npy') as reader:
+
+    # Metadata available on the reader object
+    print(reader.shape, reader.typecode, reader.itemsize)
+
+    # NOTE: assumes input is 2d. Pick chunksize in another way if not
+    chunksize = reader.shape[1]
+    for chunk in reader.read_data_chunks(chunksize):
+        print(len(chunk), chunk)
+```
+
+More examples:
+
+- Streaming matching data from two files: [two_streams.py](./examples/digits/two_streams.py)
+
+#### Streaming write
+
+Streaming/chunked writing can be used to keep memory usage low.
+
+See implementation of `npyfile.save()`, in [npyfile.py](./npyfile.py)
+
 
 ## Limitations
 
