@@ -159,13 +159,18 @@ class Reader():
         self.shape = shape
         self.data_start = data_start
 
-    def read_data_chunks(self, chunksize):
+    def read_data_chunks(self, chunksize, offset=0):
+        """
+        Generator for reading data in chunks of specified size (in items)
+
+        @offset is number of items to skip
+        """
 
         # determine amount of data expected
         total_data_bytes = self.itemsize * compute_items(self.shape)
 
         # read the data
-        self.file.seek(self.data_start)
+        self.file.seek(self.data_start + (self.itemsize*offset))
 
         chunksize_bytes = self.itemsize * chunksize
         read_bytes = 0
