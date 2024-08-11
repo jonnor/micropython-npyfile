@@ -8,20 +8,11 @@ a Machine Learning and Digital Signal Processing library for MicroPython.
 
 Features
 
-- Reading & writing .npy files with numeric data (in C order)
+- Reading & writing .npy files with numeric data (see below for Limitations)
 - Streaming/chunked reading & writing
 - No external dependencies. Uses [array.array](https://docs.micropython.org/en/latest/library/array.html)
-- Compatible with CPython
+- Written in pure Python. Compatible with CPython, CircuitPython, et.c.
 
-TODO - contributions welcomed
-
-- Example code for loading/writing .npz files (Zip archives with .npy files)
-
-Unsupported - not planned
-
-- Files with Fortran order
-- Files with strings
-- Files with pickled data
 
 ## Installing
 
@@ -39,6 +30,46 @@ See the [tests](./tests)
 
 `TODO: Add a couple of examples`
 
+## Limitations
+
+- Only little-endian is supported, not big-endian
+- Only C data order is supported, not Fortran
+- Strings are not supported
+- Complex numbers not supported
+- Pickled data is not supported
+
+
+## TODO 
+Contributions welcomed!
+
+TODO:
+
+- Example code for loading/writing .npz files (Zip archives with .npy files)
+
+
 ## Developing
 
-`TODO: Document how to run tests`
+#### Running tests on host
+
+Install the Unix/Window port of MicroPython. Then run:
+
+```
+MICROPYPATH=./ micropython tests/test_npyfile.py
+```
+
+The tests can also be ran under CPython
+```
+PYTHONPATH=./ python tests/test_npyfile.py
+```
+
+#### Running tests on device
+
+Connect a MicroPython device via USB.
+
+Copy over the data
+```
+mprempte cp npyfile.py :
+mpremote cp tests/ :
+mpremote run tests/test_npyfile.py
+```
+
