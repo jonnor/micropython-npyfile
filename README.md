@@ -92,6 +92,7 @@ See implementation of `npyfile.save()`, in [npyfile.py](./npyfile.py)
 - Complex numbers not supported
 - Pickled data is not supported
 
+NOT TESTED on unsupported/malformed/malicious inputs.
 
 ## TODO 
 Contributions welcomed!
@@ -99,7 +100,7 @@ Contributions welcomed!
 TODO:
 
 - Example code for loading/writing .npz files (Zip archives with .npy files)
-
+- Add tests for unsupported/malformed inputs
 
 ## Developing
 
