@@ -1,4 +1,7 @@
 
+import array
+import os
+
 from npyfile import Reader, Writer, load, save
 
 
@@ -27,9 +30,24 @@ def test_writer_simple():
     assert loaded_shape == shape
     assert list(arr) == list(loaded_arr)
 
+def run_test_supported(path):
+
+    loaded_shape, loaded_arr = load(path)
+
+    print(loaded_shape)
+
+
+def test_supported_files():
+    data_dir = 'tests/data/supported'
+    for filename in os.listdir(data_dir):
+        #path = os.path.join(data_dir, filename)
+        path = data_dir + '/' + filename
+        run_test_supported(path)
+
 def main():
-    test_reader_simple()
+    #test_reader_simple()
     test_writer_simple()
+    test_supported_files()
 
 
 if __name__ == '__main__':

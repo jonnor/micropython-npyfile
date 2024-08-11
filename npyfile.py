@@ -14,8 +14,21 @@ NPY_MAGIC = b'\x93NUMPY'
 
 format_mapping = {
     # npy format => (array.array typecode, itemsize in bytes)
+    # floating point
     b'f8': ('d', 8),
     b'f4': ('f', 4),
+
+    # signed integers
+    b'i8': ('q', 8),
+    b'i4': ('l', 4),
+    b'i2': ('i', 2),
+    b'i1': ('b', 1),
+
+    # unsigned integers
+    b'u8': ('Q', 8),
+    b'u4': ('L', 4),
+    b'u2': ('I', 2),
+    b'u1': ('B', 1),
 }
 
 def find_section(data, prefix, suffix):
@@ -90,8 +103,9 @@ class Reader():
 
         # Parse header info
         type_info = find_section(data, b"'descr': '", b"',")
-        type_endianess = type_info[0]
-        assert type_endianess == b'<'[0], (type_endianess)
+        type_endianess = type_info[0:1]
+        # < is little-endian, | is not applicable (single byte values)
+        assert type_endianess == b'<' or type_endianess == b'|', type_endianess
         type_format = type_info[1:]
         #print('tt', type_info)
 
