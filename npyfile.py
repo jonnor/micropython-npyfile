@@ -18,18 +18,34 @@ format_mapping = {
     b'f8': ('d', 8),
     b'f4': ('f', 4),
 
-    # signed integers
-    b'i8': ('q', 8),
-    b'i4': ('l', 4),
-    b'i2': ('i', 2),
+    # bytes
     b'i1': ('b', 1),
-
-    # unsigned integers
-    b'u8': ('Q', 8),
-    b'u4': ('L', 4),
-    b'u2': ('I', 2),
     b'u1': ('B', 1),
+
 }
+
+# find the correct array.array formats to use
+# can unfortunately depend on platform
+# In particular on 64 bit, the integers are 8 bytes, and on 32 bit they are 4
+def array_typecode_itemsize(typecode):       
+    arr = array.array(typecode, [0])
+    b = bytes(arr)
+    return len(b)   
+
+for typecode in ['q', 'l', 'h', 'i']:
+    size = array_typecode_itemsize(typecode)
+    dummy = bytes(size)
+    struct.unpack(typecode, dummy)
+    key = f'i{size}'.encode('ascii')
+    format_mapping[key] = (typecode, size)
+
+for typecode in ['Q', 'L', 'H', 'I']:
+    size = array_typecode_itemsize(typecode)
+    dummy = bytes(size)
+    struct.unpack(typecode, dummy)
+    key = f'u{size}'.encode('ascii')
+    format_mapping[key] = (typecode, size)
+
 
 def find_section(data, prefix, suffix):
     start = data.index(prefix) + len(prefix)
@@ -45,6 +61,20 @@ def array_tobytes_generator(arr):
         buf = struct.pack(typecode, item)
         yield buf
 
+def array_frombytes(typecode, buf):
+
+    if True:
+        arr = array.array(typecode, buf)
+        return arr
+    else:
+        # XXX: dead code
+        arr = array.array(typecode, buf)
+        itemsize = len(buf) // len(arr)
+        for idx in range(len(arr)):
+            start = idx*itemsize
+            arr[idx] = struct.unpack_from('<'+typecode, buf, start)[0]
+
+        return arr
 
 def array_typecode(arr):
     typecode = str(arr)[7:8]
@@ -99,7 +129,7 @@ class Reader():
         else:
             raise ValueError("Unsupported npy format version")
 
-        print('hs', header_start, data[header_start:header_start+header_length])
+        #print('hs', header_start, data[header_start:header_start+header_length])
 
         # Parse header info
         type_info = find_section(data, b"'descr': '", b"',")
@@ -141,7 +171,7 @@ class Reader():
         read_bytes = 0
         while read_bytes < total_data_bytes:
             sub = self.file.read(chunksize_bytes)
-            arr = array.array(self.typecode, sub)
+            arr = array_frombytes(self.typecode, sub)
             yield arr
             read_bytes += len(sub)
 

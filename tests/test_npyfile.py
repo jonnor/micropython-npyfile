@@ -3,6 +3,7 @@ import array
 import os
 
 from npyfile import Reader, Writer, load, save
+from npyfile import compute_items, find_section
 
 
 def test_reader_simple():
@@ -30,25 +31,45 @@ def test_writer_simple():
     assert loaded_shape == shape
     assert list(arr) == list(loaded_arr)
 
-def run_test_supported(path):
+
+def run_test_supported(path, expect_shape):
 
     loaded_shape, loaded_arr = load(path)
 
-    print(loaded_shape)
+    items = compute_items(loaded_shape)
+    expect = list(range(items))
+
+    assert loaded_shape == expect_shape
+    assert list(loaded_arr)[0:126] == expect[0:126], (loaded_arr, expect)
 
 
 def test_supported_files():
     data_dir = 'tests/data/supported'
     for filename in os.listdir(data_dir):
         #path = os.path.join(data_dir, filename)
+
+        f = filename.encode('ascii')
+        shape_str = find_section(f, b'(', b')')
+        shape = tuple([ int(d) for d in shape_str.split(b',') ])
+
+        #if not 'uint8' in filename:
+        #    continue
+
         path = data_dir + '/' + filename
-        run_test_supported(path)
+        print('file', shape, filename)
+        run_test_supported(path, shape)
 
 def main():
-    #test_reader_simple()
-    test_writer_simple()
-    test_supported_files()
+    tests = [
+        #test_reader_simple,
+        test_writer_simple,
+        test_supported_files,
+    ]
+    for func in tests:
+        print(func.__name__, '...')
+        func()
 
+    print('TESTS: OK')
 
 if __name__ == '__main__':
     main()
