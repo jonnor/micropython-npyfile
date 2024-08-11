@@ -1,18 +1,11 @@
 
 import array
 import os
+import gc
 
 from npyfile import Reader, Writer, load, save
 from npyfile import compute_items, find_section
 
-
-def test_reader_simple():
-
-    with Reader('benchmarks/iir/noise.npy') as reader:
-        print(reader.shape, reader.typecode, reader.itemsize)
-
-        for s in reader.read_data_chunks(500):
-            print(len(s))
 
 
 def test_writer_simple():
@@ -34,14 +27,36 @@ def test_writer_simple():
 
 def run_test_supported(path, expect_shape):
 
+    # Should be able to load
     loaded_shape, loaded_arr = load(path)
 
+    # check shape correct
+    assert loaded_shape == expect_shape
+
+    # check data correct
     items = compute_items(loaded_shape)
     expect = list(range(items))
+    # with int8 arange values starts wrapping around after 127
+    max_compare = 126
+    o = list(loaded_arr)[0:max_compare]
+    e = expect[0:max_compare]
+    assert o == e, (o, e)
 
-    assert loaded_shape == expect_shape
-    assert list(loaded_arr)[0:126] == expect[0:126], (loaded_arr, expect)
+    del o; del e;
+    gc.collect()
 
+    # try to write the data
+    temp_dir = 'tests/out'
+    save_path = temp_dir + '/' + 'out.npy'
+    save(save_path, loaded_arr, shape=loaded_shape)
+
+    # should also load correctly
+    saved_shape, saved_arr = load(save_path)
+    assert saved_shape == expect_shape
+
+    o = list(saved_arr)[0:max_compare]
+    e = expect[0:max_compare]
+    assert o == e, (o, e)
 
 def test_supported_files():
     data_dir = 'tests/data/supported'
@@ -52,12 +67,10 @@ def test_supported_files():
         shape_str = find_section(f, b'(', b')')
         shape = tuple([ int(d) for d in shape_str.split(b',') ])
 
-        #if not 'uint8' in filename:
-        #    continue
-
         path = data_dir + '/' + filename
         print('file', shape, filename)
         run_test_supported(path, shape)
+        gc.collect()
 
 def main():
     tests = [

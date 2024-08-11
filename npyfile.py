@@ -173,12 +173,17 @@ class Reader():
         self.file.seek(self.data_start + (self.itemsize*offset))
 
         chunksize_bytes = self.itemsize * chunksize
+        #print('c', chunksize, chunksize_bytes, total_data_bytes)
+
         read_bytes = 0
+        chunk_no = 0
         while read_bytes < total_data_bytes:
             sub = self.file.read(chunksize_bytes)
             arr = array_frombytes(self.typecode, sub)
             yield arr
             read_bytes += len(sub)
+            chunk_no += 1
+            #print('cc', chunk_no, read_bytes, total_data_bytes)
 
 
 class Writer():
@@ -214,10 +219,13 @@ class Writer():
         assert dimensions <= 5, dimensions
 
         # Construct header info
-        dtype = '<f4' # FIXME: unhardcode
+        dtype_matches = [ key for key, (tc, size) in format_mapping.items() if tc == self.typecode ]
+        assert len(dtype_matches) == 1, dtype_matches
+        dtype = '<'+dtype_matches[0].decode('ascii')
         shape_str = ','.join((str(d) for d in shape))
 
         header = f"{{'descr': '{dtype}', 'fortran_order': False, 'shape': ({shape_str}), }}"
+        #print('wh', header)
         
         # Padded to ensure data start is aligened to 16 bytes
         data_start = len(NPY_MAGIC)+2+2+len(header)
