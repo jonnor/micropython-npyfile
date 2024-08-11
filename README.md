@@ -123,8 +123,8 @@ Connect a MicroPython device via USB.
 
 Copy over the data
 ```
-mprempte cp npyfile.py :
-mpremote cp tests/ :
+mpremote cp npyfile.py :
+mpremote -r cp tests/ :
 mpremote run tests/test_npyfile.py
 ```
 
