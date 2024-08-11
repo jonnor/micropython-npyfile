@@ -1,3 +1,6 @@
+
+![Tests](https://github.com/jonnor/micropython-npyfile/actions/workflows/tests.yml/badge.svg)
+
 # micropython-npyfile
 
 Support for [Numpy files (.npy)](https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html) for [MicroPython](https://micropython.org/).
@@ -6,7 +9,7 @@ Simple persistence of multi-dimensional numeric array data, and interoperability
 Was initially written to be used with [emlearn-micropython](https://github.com/emlearn/emlearn-micropython),
 a Machine Learning and Digital Signal Processing library for MicroPython.
 
-Features
+#### Features
 
 - Reading & writing .npy files with numeric data (see below for Limitations)
 - Streaming/chunked reading & writing
@@ -23,6 +26,8 @@ For example:
 ```bash
 mpremote mip install github:jonnor/micropython-npyfile
 ```
+
+Or just copy the `npyfile.py` file to your MicroPython device.
 
 ## Usage
 
