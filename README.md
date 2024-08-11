@@ -1,5 +1,5 @@
 
-![Tests](https://github.com/jonnor/micropython-npyfile/actions/workflows/tests.yml/badge.svg)
+[![Tests](https://github.com/jonnor/micropython-npyfile/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/jonnor/micropython-npyfile/actions/workflows/tests.yml)
 
 # micropython-npyfile
 
