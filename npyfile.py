@@ -167,23 +167,30 @@ class Reader():
         """
 
         # determine amount of data expected
-        total_data_bytes = self.itemsize * compute_items(self.shape)
+        offset_bytes = self.itemsize*offset
+        total_data_bytes = (self.itemsize * compute_items(self.shape)) - offset_bytes
 
         # read the data
-        self.file.seek(self.data_start + (self.itemsize*offset))
+        read_start = self.data_start + offset_bytes
+        self.file.seek(read_start)
 
         chunksize_bytes = self.itemsize * chunksize
-        #print('c', chunksize, chunksize_bytes, total_data_bytes)
+        #print('cc', chunksize, chunksize_bytes, total_data_bytes, read_start)
 
         read_bytes = 0
         chunk_no = 0
         while read_bytes < total_data_bytes:
             sub = self.file.read(chunksize_bytes)
+            if len(sub) == 0:
+                break
             arr = array_frombytes(self.typecode, sub)
             yield arr
             read_bytes += len(sub)
             chunk_no += 1
-            #print('cc', chunk_no, read_bytes, total_data_bytes)
+            #print('sub', chunk_no, len(sub), read_bytes, total_data_bytes)
+
+        if read_bytes < total_data_bytes:
+            print('Warning: .npy file shorter than expected')
 
 
 class Writer():
@@ -196,9 +203,14 @@ class Writer():
 
         self.typecode = typecode
         self.shape = shape
+        self.written_bytes = 0
 
     def close(self):
+        expect_bytes = compute_items(self.shape) * array_typecode_itemsize(self.typecode)
+        if self.written_bytes != expect_bytes:
+            print("Warning: Incorrect number of values written")
         if self.file:
+            self.file.flush()
             self.file.close()
         self.file = None
 
@@ -249,7 +261,10 @@ class Writer():
         assert input_typecode == self.typecode, (input_typecode, self.typecode)
 
         for buf in array_tobytes_generator(arr):
+            self.written_bytes += len(buf)
             self.file.write(buf)
+
+        #print('write', self.written_bytes)
 
 
 def load(filelike) -> tuple[tuple, array.array]:
