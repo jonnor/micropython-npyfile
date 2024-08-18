@@ -234,7 +234,10 @@ class Writer():
         dtype_matches = [ key for key, (tc, size) in format_mapping.items() if tc == self.typecode ]
         assert len(dtype_matches) == 1, dtype_matches
         dtype = '<'+dtype_matches[0].decode('ascii')
-        shape_str = ','.join((str(d) for d in shape))
+        if len(shape) == 1:
+            shape_str = f'{shape[0]},' # 1-length tuple must have trailing ,
+        else: 
+            shape_str = ','.join((str(d) for d in shape))
 
         header = f"{{'descr': '{dtype}', 'fortran_order': False, 'shape': ({shape_str}), }}"
         #print('wh', header)
