@@ -59,6 +59,11 @@ try:
 except ImportError:
     lzma = None
 
+try:
+    import deflate # We may need its compression method
+except ImportError:
+    deflate = None
+
 __all__ = ["BadZipFile", "BadZipfile", "error",
            "ZIP_STORED", "ZIP_DEFLATED", "ZIP_BZIP2", "ZIP_LZMA",
            "is_zipfile", "ZipInfo", "ZipFile", "PyZipFile", "LargeZipFile",
@@ -729,6 +734,20 @@ class LZMADecompressor:
         self.eof = self._decomp.eof
         return result
 
+class DeflateDecompressor:
+
+    def __init__(self):
+        self._decomp = None
+        self.unconsumed_tail = b''
+        self.eof = False
+
+    def decompress(self, data):
+        stream = io.BytesIO(data)
+        with deflate.DeflateIO(stream, deflate.AUTO) as d:
+            decompressed = d.read()
+
+        return decompressed
+
 
 compressor_names = {
     0: 'store',
@@ -754,9 +773,9 @@ def _check_compression(compression):
     if compression == ZIP_STORED:
         pass
     elif compression == ZIP_DEFLATED:
-        if not zlib:
+        if not deflate and not zlib:
             raise RuntimeError(
-                "Compression requires the (missing) zlib module")
+                "Compression requires the (missing) zlib or deflate modules")
     elif compression == ZIP_BZIP2:
         if not bz2:
             raise RuntimeError(
@@ -790,7 +809,10 @@ def _get_decompressor(compress_type):
     if compress_type == ZIP_STORED:
         return None
     elif compress_type == ZIP_DEFLATED:
-        return zlib.decompressobj(-15)
+        if deflate:
+            return DeflateDecompressor()
+        else:
+            return zlib.decompressobj(-15)
     elif compress_type == ZIP_BZIP2:
         return bz2.BZ2Decompressor()
     elif compress_type == ZIP_LZMA:
@@ -1091,7 +1113,7 @@ class ZipExtFile(BufferedIOBase):
 
         if self._compress_type == ZIP_STORED:
             self._eof = self._compress_left <= 0
-        elif self._compress_type == ZIP_DEFLATED:
+        elif self._compress_type == ZIP_DEFLATED and zlib:
             n = max(n, self.MIN_READ_SIZE)
             data = self._decompressor.decompress(data, n)
             self._eof = (self._decompressor.eof or
