@@ -1,18 +1,46 @@
 """
 Read and write ZIP files.
 
-XXX references to utf-8 need further investigation.
+MicroPython implementation ported from CPython 3.12
+https://raw.githubusercontent.com/python/cpython/3.12/Lib/zipfile/__init__.py
+
+PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2
 """
 import binascii
-import importlib.util
 import io
 import os
-import shutil
-import stat
+#import shutil # FIXME: implement copyfileobj
+#import stat
 import struct
 import sys
-import threading
+#import threading
+
 import time
+
+SEEK_SET = 0
+SEEK_CUR = 1
+SEEK_END = 2
+
+ALTSEP = '/'
+
+# Dummy base class
+class BufferedIOBase():
+    def __init__(self):
+
+        self.closed = False
+        pass
+
+    def close(self):
+        pass
+
+# Dummy lock - does nothing
+class RLock():
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        pass
 
 try:
     import zlib # We may need its compression method
@@ -34,7 +62,7 @@ except ImportError:
 __all__ = ["BadZipFile", "BadZipfile", "error",
            "ZIP_STORED", "ZIP_DEFLATED", "ZIP_BZIP2", "ZIP_LZMA",
            "is_zipfile", "ZipInfo", "ZipFile", "PyZipFile", "LargeZipFile",
-           "Path"]
+           ]
 
 class BadZipFile(Exception):
     pass
@@ -188,10 +216,10 @@ _CD64_OFFSET_START_CENTDIR = 9
 
 _DD_SIGNATURE = 0x08074b50
 
-_EXTRA_FIELD_STRUCT = struct.Struct('<HH')
 
 def _strip_extra(extra, xids):
     # Remove Extra Fields with specified IDs.
+    _EXTRA_FIELD_STRUCT = struct.Struct('<HH')
     unpack = _EXTRA_FIELD_STRUCT.unpack
     modified = False
     buffer = []
@@ -352,8 +380,8 @@ def _sanitize_filename(filename):
     # ZIP format specification.
     if os.sep != "/" and os.sep in filename:
         filename = filename.replace(os.sep, "/")
-    if os.altsep and os.altsep != "/" and os.altsep in filename:
-        filename = filename.replace(os.altsep, "/")
+    if ALTSEP and ALTSEP != "/" and ALTSEP in filename:
+        filename = filename.replace(ALTSEP, "/")
     return filename
 
 
@@ -521,8 +549,7 @@ class ZipInfo (object):
                         field = "Header offset"
                         self.header_offset, = unpack('<Q', data[:8])
                 except struct.error:
-                    raise BadZipFile(f"Corrupt zip64 extra field. "
-                                     f"{field} not found.") from None
+                    raise BadZipFile(f"Corrupt zip64 extra field. \n {field} not found.")
             elif tp == 0x7075:
                 data = extra[4:ln+4]
                 # Unicode Path Extra Field
@@ -552,8 +579,8 @@ class ZipInfo (object):
         this will be the same as filename, but without a drive letter and with
         leading path separators removed).
         """
-        if isinstance(filename, os.PathLike):
-            filename = os.fspath(filename)
+        #if isinstance(filename, os.PathLike):
+        #    filename = os.fspath(filename)
         st = os.stat(filename)
         isdir = stat.S_ISDIR(st.st_mode)
         mtime = time.localtime(st.st_mtime)
@@ -566,7 +593,7 @@ class ZipInfo (object):
         if arcname is None:
             arcname = filename
         arcname = os.path.normpath(os.path.splitdrive(arcname)[1])
-        while arcname[0] in (os.sep, os.altsep):
+        while arcname[0] in (os.sep, ALTSEP):
             arcname = arcname[1:]
         if isdir:
             arcname += '/'
@@ -588,8 +615,8 @@ class ZipInfo (object):
         # as the directory separator, but in practice some ZIP files
         # created on Windows can use backward slashes.  For compatibility
         # with the extraction code which already handles this:
-        if os.path.altsep:
-            return self.filename.endswith((os.path.sep, os.path.altsep))
+        if ALTSEP:
+            return self.filename.endswith((os.path.sep, ALTSEP))
         return False
 
 
@@ -783,7 +810,10 @@ class _SharedFile:
         self._close = close
         self._lock = lock
         self._writing = writing
-        self.seekable = file.seekable
+        #self.seekable = True #file.seekable FIXME
+
+    def seekable(self):
+        return True # FIXME: defer to self._file.seekable
 
     def tell(self):
         return self._pos
@@ -836,7 +866,7 @@ class _Tellable:
         self.fp.close()
 
 
-class ZipExtFile(io.BufferedIOBase):
+class ZipExtFile(BufferedIOBase):
     """File-like object for reading an archive member.
        Is returned by ZipFile.open().
     """
@@ -855,6 +885,7 @@ class ZipExtFile(io.BufferedIOBase):
         self._fileobj = fileobj
         self._pwd = pwd
         self._close_fileobj = close_fileobj
+        self.closed = False 
 
         self._compress_type = zipinfo.compress_type
         self._compress_left = zipinfo.compress_size
@@ -941,7 +972,7 @@ class ZipExtFile(io.BufferedIOBase):
                 self._offset = i
                 return line
 
-        return io.BufferedIOBase.readline(self, limit)
+        return BufferedIOBase.readline(self, limit)
 
     def peek(self, n=1):
         """Returns buffered bytes without advancing the position."""
@@ -1107,17 +1138,17 @@ class ZipExtFile(io.BufferedIOBase):
             raise ValueError("I/O operation on closed file.")
         return self._seekable
 
-    def seek(self, offset, whence=os.SEEK_SET):
+    def seek(self, offset, whence=SEEK_SET):
         if self.closed:
             raise ValueError("seek on closed file.")
         if not self._seekable:
             raise io.UnsupportedOperation("underlying stream is not seekable")
         curr_pos = self.tell()
-        if whence == os.SEEK_SET:
+        if whence == SEEK_SET:
             new_pos = offset
-        elif whence == os.SEEK_CUR:
+        elif whence == SEEK_CUR:
             new_pos = curr_pos + offset
-        elif whence == os.SEEK_END:
+        elif whence == SEEK_END:
             new_pos = self._orig_file_size + offset
         else:
             raise ValueError("whence must be os.SEEK_SET (0), "
@@ -1179,7 +1210,7 @@ class ZipExtFile(io.BufferedIOBase):
         return filepos
 
 
-class _ZipWriteFile(io.BufferedIOBase):
+class _ZipWriteFile(BufferedIOBase):
     def __init__(self, zf, zinfo, zip64):
         self._zinfo = zinfo
         self._zip64 = zip64
@@ -1317,8 +1348,8 @@ class ZipFile:
                 "metadata_encoding is only supported for reading files")
 
         # Check if we were passed a file-like object
-        if isinstance(file, os.PathLike):
-            file = os.fspath(file)
+        #if isinstance(file, os.PathLike):
+        #    file = os.fspath(file)
         if isinstance(file, str):
             # No, it's a filename
             self._filePassed = 0
@@ -1340,7 +1371,7 @@ class ZipFile:
             self.fp = file
             self.filename = getattr(file, 'name', None)
         self._fileRefCnt = 1
-        self._lock = threading.RLock()
+        self._lock = RLock()
         self._seekable = True
         self._writing = False
 
@@ -1769,8 +1800,8 @@ class ZipFile:
         # forward slashes to platform specific separators.
         arcname = member.filename.replace('/', os.path.sep)
 
-        if os.path.altsep:
-            arcname = arcname.replace(os.path.altsep, os.path.sep)
+        if ALTSEP:
+            arcname = arcname.replace(ALTSEP, os.path.sep)
         # interpret absolute pathname as relative, remove drive letter or
         # UNC path, redundant separators, "." and ".." components.
         arcname = os.path.splitdrive(arcname)[1]
@@ -2061,255 +2092,4 @@ class ZipFile:
         if not self._fileRefCnt and not self._filePassed:
             fp.close()
 
-
-class PyZipFile(ZipFile):
-    """Class to create ZIP archives with Python library files and packages."""
-
-    def __init__(self, file, mode="r", compression=ZIP_STORED,
-                 allowZip64=True, optimize=-1):
-        ZipFile.__init__(self, file, mode=mode, compression=compression,
-                         allowZip64=allowZip64)
-        self._optimize = optimize
-
-    def writepy(self, pathname, basename="", filterfunc=None):
-        """Add all files from "pathname" to the ZIP archive.
-
-        If pathname is a package directory, search the directory and
-        all package subdirectories recursively for all *.py and enter
-        the modules into the archive.  If pathname is a plain
-        directory, listdir *.py and enter all modules.  Else, pathname
-        must be a Python *.py file and the module will be put into the
-        archive.  Added modules are always module.pyc.
-        This method will compile the module.py into module.pyc if
-        necessary.
-        If filterfunc(pathname) is given, it is called with every argument.
-        When it is False, the file or directory is skipped.
-        """
-        pathname = os.fspath(pathname)
-        if filterfunc and not filterfunc(pathname):
-            if self.debug:
-                label = 'path' if os.path.isdir(pathname) else 'file'
-                print('%s %r skipped by filterfunc' % (label, pathname))
-            return
-        dir, name = os.path.split(pathname)
-        if os.path.isdir(pathname):
-            initname = os.path.join(pathname, "__init__.py")
-            if os.path.isfile(initname):
-                # This is a package directory, add it
-                if basename:
-                    basename = "%s/%s" % (basename, name)
-                else:
-                    basename = name
-                if self.debug:
-                    print("Adding package in", pathname, "as", basename)
-                fname, arcname = self._get_codename(initname[0:-3], basename)
-                if self.debug:
-                    print("Adding", arcname)
-                self.write(fname, arcname)
-                dirlist = sorted(os.listdir(pathname))
-                dirlist.remove("__init__.py")
-                # Add all *.py files and package subdirectories
-                for filename in dirlist:
-                    path = os.path.join(pathname, filename)
-                    root, ext = os.path.splitext(filename)
-                    if os.path.isdir(path):
-                        if os.path.isfile(os.path.join(path, "__init__.py")):
-                            # This is a package directory, add it
-                            self.writepy(path, basename,
-                                         filterfunc=filterfunc)  # Recursive call
-                    elif ext == ".py":
-                        if filterfunc and not filterfunc(path):
-                            if self.debug:
-                                print('file %r skipped by filterfunc' % path)
-                            continue
-                        fname, arcname = self._get_codename(path[0:-3],
-                                                            basename)
-                        if self.debug:
-                            print("Adding", arcname)
-                        self.write(fname, arcname)
-            else:
-                # This is NOT a package directory, add its files at top level
-                if self.debug:
-                    print("Adding files from directory", pathname)
-                for filename in sorted(os.listdir(pathname)):
-                    path = os.path.join(pathname, filename)
-                    root, ext = os.path.splitext(filename)
-                    if ext == ".py":
-                        if filterfunc and not filterfunc(path):
-                            if self.debug:
-                                print('file %r skipped by filterfunc' % path)
-                            continue
-                        fname, arcname = self._get_codename(path[0:-3],
-                                                            basename)
-                        if self.debug:
-                            print("Adding", arcname)
-                        self.write(fname, arcname)
-        else:
-            if pathname[-3:] != ".py":
-                raise RuntimeError(
-                    'Files added with writepy() must end with ".py"')
-            fname, arcname = self._get_codename(pathname[0:-3], basename)
-            if self.debug:
-                print("Adding file", arcname)
-            self.write(fname, arcname)
-
-    def _get_codename(self, pathname, basename):
-        """Return (filename, archivename) for the path.
-
-        Given a module name path, return the correct file path and
-        archive name, compiling if necessary.  For example, given
-        /python/lib/string, return (/python/lib/string.pyc, string).
-        """
-        def _compile(file, optimize=-1):
-            import py_compile
-            if self.debug:
-                print("Compiling", file)
-            try:
-                py_compile.compile(file, doraise=True, optimize=optimize)
-            except py_compile.PyCompileError as err:
-                print(err.msg)
-                return False
-            return True
-
-        file_py  = pathname + ".py"
-        file_pyc = pathname + ".pyc"
-        pycache_opt0 = importlib.util.cache_from_source(file_py, optimization='')
-        pycache_opt1 = importlib.util.cache_from_source(file_py, optimization=1)
-        pycache_opt2 = importlib.util.cache_from_source(file_py, optimization=2)
-        if self._optimize == -1:
-            # legacy mode: use whatever file is present
-            if (os.path.isfile(file_pyc) and
-                  os.stat(file_pyc).st_mtime >= os.stat(file_py).st_mtime):
-                # Use .pyc file.
-                arcname = fname = file_pyc
-            elif (os.path.isfile(pycache_opt0) and
-                  os.stat(pycache_opt0).st_mtime >= os.stat(file_py).st_mtime):
-                # Use the __pycache__/*.pyc file, but write it to the legacy pyc
-                # file name in the archive.
-                fname = pycache_opt0
-                arcname = file_pyc
-            elif (os.path.isfile(pycache_opt1) and
-                  os.stat(pycache_opt1).st_mtime >= os.stat(file_py).st_mtime):
-                # Use the __pycache__/*.pyc file, but write it to the legacy pyc
-                # file name in the archive.
-                fname = pycache_opt1
-                arcname = file_pyc
-            elif (os.path.isfile(pycache_opt2) and
-                  os.stat(pycache_opt2).st_mtime >= os.stat(file_py).st_mtime):
-                # Use the __pycache__/*.pyc file, but write it to the legacy pyc
-                # file name in the archive.
-                fname = pycache_opt2
-                arcname = file_pyc
-            else:
-                # Compile py into PEP 3147 pyc file.
-                if _compile(file_py):
-                    if sys.flags.optimize == 0:
-                        fname = pycache_opt0
-                    elif sys.flags.optimize == 1:
-                        fname = pycache_opt1
-                    else:
-                        fname = pycache_opt2
-                    arcname = file_pyc
-                else:
-                    fname = arcname = file_py
-        else:
-            # new mode: use given optimization level
-            if self._optimize == 0:
-                fname = pycache_opt0
-                arcname = file_pyc
-            else:
-                arcname = file_pyc
-                if self._optimize == 1:
-                    fname = pycache_opt1
-                elif self._optimize == 2:
-                    fname = pycache_opt2
-                else:
-                    msg = "invalid value for 'optimize': {!r}".format(self._optimize)
-                    raise ValueError(msg)
-            if not (os.path.isfile(fname) and
-                    os.stat(fname).st_mtime >= os.stat(file_py).st_mtime):
-                if not _compile(file_py, optimize=self._optimize):
-                    fname = arcname = file_py
-        archivename = os.path.split(arcname)[1]
-        if basename:
-            archivename = "%s/%s" % (basename, archivename)
-        return (fname, archivename)
-
-
-def main(args=None):
-    import argparse
-
-    description = 'A simple command-line interface for zipfile module.'
-    parser = argparse.ArgumentParser(description=description)
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-l', '--list', metavar='<zipfile>',
-                       help='Show listing of a zipfile')
-    group.add_argument('-e', '--extract', nargs=2,
-                       metavar=('<zipfile>', '<output_dir>'),
-                       help='Extract zipfile into target dir')
-    group.add_argument('-c', '--create', nargs='+',
-                       metavar=('<name>', '<file>'),
-                       help='Create zipfile from sources')
-    group.add_argument('-t', '--test', metavar='<zipfile>',
-                       help='Test if a zipfile is valid')
-    parser.add_argument('--metadata-encoding', metavar='<encoding>',
-                        help='Specify encoding of member names for -l, -e and -t')
-    args = parser.parse_args(args)
-
-    encoding = args.metadata_encoding
-
-    if args.test is not None:
-        src = args.test
-        with ZipFile(src, 'r', metadata_encoding=encoding) as zf:
-            badfile = zf.testzip()
-        if badfile:
-            print("The following enclosed file is corrupted: {!r}".format(badfile))
-        print("Done testing")
-
-    elif args.list is not None:
-        src = args.list
-        with ZipFile(src, 'r', metadata_encoding=encoding) as zf:
-            zf.printdir()
-
-    elif args.extract is not None:
-        src, curdir = args.extract
-        with ZipFile(src, 'r', metadata_encoding=encoding) as zf:
-            zf.extractall(curdir)
-
-    elif args.create is not None:
-        if encoding:
-            print("Non-conforming encodings not supported with -c.",
-                  file=sys.stderr)
-            sys.exit(1)
-
-        zip_name = args.create.pop(0)
-        files = args.create
-
-        def addToZip(zf, path, zippath):
-            if os.path.isfile(path):
-                zf.write(path, zippath, ZIP_DEFLATED)
-            elif os.path.isdir(path):
-                if zippath:
-                    zf.write(path, zippath)
-                for nm in sorted(os.listdir(path)):
-                    addToZip(zf,
-                             os.path.join(path, nm), os.path.join(zippath, nm))
-            # else: ignore
-
-        with ZipFile(zip_name, 'w') as zf:
-            for path in files:
-                zippath = os.path.basename(path)
-                if not zippath:
-                    zippath = os.path.basename(os.path.dirname(path))
-                if zippath in ('', os.curdir, os.pardir):
-                    zippath = ''
-                addToZip(zf, path, zippath)
-
-
-from ._path import (  # noqa: E402
-    Path,
-
-    # used privately for tests
-    CompleteDirs,  # noqa: F401
-)
 
