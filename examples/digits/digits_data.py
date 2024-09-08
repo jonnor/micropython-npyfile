@@ -12,3 +12,6 @@ print(Y.shape, Y.dtype)
 
 numpy.save('digits_data.npy', X)
 numpy.save('digits_labels.npy', Y)
+
+numpy.savez('digits_combined.npz', X=X, Y=Y)
+numpy.savez_compressed('digits_compressed.npz', X=X, Y=Y)
