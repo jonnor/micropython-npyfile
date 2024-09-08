@@ -1,4 +1,7 @@
 
+# zipfile module must be installed using mip
+# See for example https://github.com/jonnor/micropython-zipfile
+
 import zipfile
 print('zipfile', zipfile.__file__)
 

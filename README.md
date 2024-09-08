@@ -83,6 +83,15 @@ Streaming/chunked writing can be used to keep memory usage low.
 
 See implementation of `npyfile.save()`, in [npyfile.py](./npyfile.py)
 
+#### Reading .npz files
+
+.npz files are ZIP archives.
+They can be read using an implementation of the zipfile module,
+such as [jonnor/micropython-zipfile](https://github.com/jonnor/micropython-zipfile).
+Both uncompressed and DEFLATE compressed files are supported.
+
+For example code, see [read_npz.py](./examples/read_npz.py).
+
 
 ## Limitations
 
@@ -99,7 +108,6 @@ Contributions welcomed!
 
 TODO:
 
-- Example code for loading/writing .npz files (Zip archives with .npy files)
 - Add tests for unsupported/malformed inputs
 
 ## Developing
