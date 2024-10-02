@@ -92,6 +92,19 @@ Both uncompressed and DEFLATE compressed files are supported.
 
 For example code, see [read_npz.py](./examples/read_npz.py).
 
+#### Saving portable files with numpy
+
+numpy.save defaults to allowing pickle support.
+This makes is very easy to accidentially save numpy.array
+objects that use pickle for serialization, instead of just numeric data.
+Such files will not be loadable by `npyfile` (or most other .npy readers).
+
+To avoid this, when saving numeric arrays, always use:
+
+```python
+numpy.save(PATH, DATA, allow_pickle=False)
+```
+
 
 ## Limitations
 
