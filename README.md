@@ -104,7 +104,7 @@ print(data)
 
 More examples:
 
-- Streaming matching data from two files: [two_streams.py](./examples/digits/two_streams.py)
+- Streaming matching data from two files: [streaming_readwrite.py](./examples/digits/streaming_readwrite.py)
 - Implementation of `npyfile.save()`, in [npyfile.py](./npyfile.py)
  
 
