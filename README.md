@@ -81,7 +81,26 @@ More examples:
 
 Streaming/chunked writing can be used to keep memory usage low.
 
-See implementation of `npyfile.save()`, in [npyfile.py](./npyfile.py)
+```python
+import npyfile
+import array
+
+with npyfile.Writer('output.npy', shape=(5, 3), typecode='f') as writer:
+    chunk = array.array('f', (1.1, 2.2, 3.3))
+
+    for i in range(5):
+        writer.write_values(chunk, typecode='f')
+
+data, shape = npyfile.load('output.npy')
+print(shape)
+print(data)
+```
+
+More examples:
+
+- Streaming matching data from two files: [two_streams.py](./examples/digits/two_streams.py)
+- Implementation of `npyfile.save()`, in [npyfile.py](./npyfile.py)
+ 
 
 #### Reading .npz files
 
