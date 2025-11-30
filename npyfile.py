@@ -54,7 +54,7 @@ def find_section(data, prefix, suffix):
     section = data[start:end]
     return section
 
-def array_tobytes_generator(arr):
+def array_tobytes_generator(arr, typecode):
     # array.array.tobytes() is missing in MicroPython =/
     typecode = array_typecode(arr)
     for item in arr: 
@@ -259,11 +259,12 @@ class Writer():
 
         # ready to write data
 
-    def write_values(self, arr):
-        input_typecode = array_typecode(arr)
-        assert input_typecode == self.typecode, (input_typecode, self.typecode)
+    def write_values(self, arr, typecode=None):
+        if typecode is None:
+            typecode = array_typecode(arr)
+        assert typecode == self.typecode, (typecode, self.typecode)
 
-        for buf in array_tobytes_generator(arr):
+        for buf in array_tobytes_generator(arr, typecode):
             self.written_bytes += len(buf)
             self.file.write(buf)
 
@@ -288,7 +289,7 @@ def load(filelike) -> tuple[tuple, array.array]:
     assert len(chunks) == 1
     return reader.shape, chunks[0]
 
-def save(filelike, arr : array.array, shape=None):
+def save(filelike, arr : array.array, shape=None, typecode=None):
     """
     Save array as .npy file
 
@@ -300,7 +301,8 @@ def save(filelike, arr : array.array, shape=None):
         # default to 1d
         shape = (len(arr), )        
 
-    typecode = array_typecode(arr)
+    if typecode is None:
+        typecode = array_typecode(arr)
     total = compute_items(shape)
     assert total == len(arr), (shape, total, len(arr))
 

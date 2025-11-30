@@ -6,8 +6,14 @@
 Support for [Numpy files (.npy)](https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html) for [MicroPython](https://micropython.org/).
 Simple persistence of multi-dimensional numeric array data, and interoperability with Numpy/CPython et.c.
 
+This is useful for example for sensor data, time-series, audio, images, bitmaps, et.c,
+with applications in IoT systems, robotics, etc.
+
 Was initially written to be used with [emlearn-micropython](https://github.com/emlearn/emlearn-micropython),
 a Machine Learning and Digital Signal Processing library for MicroPython.
+
+If your data is homogenous numeric data, then .npy files is as superior alternativet to comma-separated values (CSV/TSV etc),
+both in terms of storage space and processing time.
 
 #### Features
 
@@ -81,7 +87,26 @@ More examples:
 
 Streaming/chunked writing can be used to keep memory usage low.
 
-See implementation of `npyfile.save()`, in [npyfile.py](./npyfile.py)
+```python
+import npyfile
+import array
+
+with npyfile.Writer('output.npy', shape=(5, 3), typecode='f') as writer:
+    chunk = array.array('f', (1.1, 2.2, 3.3))
+
+    for i in range(5):
+        writer.write_values(chunk, typecode='f')
+
+data, shape = npyfile.load('output.npy')
+print(shape)
+print(data)
+```
+
+More examples:
+
+- Streaming matching data from two files: [two_streams.py](./examples/digits/two_streams.py)
+- Implementation of `npyfile.save()`, in [npyfile.py](./npyfile.py)
+ 
 
 #### Reading .npz files
 
