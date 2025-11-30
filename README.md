@@ -6,8 +6,14 @@
 Support for [Numpy files (.npy)](https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html) for [MicroPython](https://micropython.org/).
 Simple persistence of multi-dimensional numeric array data, and interoperability with Numpy/CPython et.c.
 
+This is useful for example for sensor data, time-series, audio, images, bitmaps, et.c,
+with applications in IoT systems, robotics, etc.
+
 Was initially written to be used with [emlearn-micropython](https://github.com/emlearn/emlearn-micropython),
 a Machine Learning and Digital Signal Processing library for MicroPython.
+
+If your data is homogenous numeric data, then .npy files is as superior alternativet to comma-separated values (CSV/TSV etc),
+both in terms of storage space and processing time.
 
 #### Features
 
