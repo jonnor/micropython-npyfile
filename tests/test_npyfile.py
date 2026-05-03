@@ -72,8 +72,22 @@ def test_supported_files():
         run_test_supported(path, shape)
         gc.collect()
 
+def test_load_chunk_boundary():
+    """Test load with sizes that don't divide evenly into chunk_size"""
+    # 10 items with default chunk_size=64: single partial chunk
+    # 100 items with chunk_size=64: one full chunk + one partial (36 items)
+    for size in (1, 10, 63, 64, 65, 100, 127, 128, 129):
+        arr = array.array('f', (float(i) for i in range(size)))
+        shape = (size,)
+        path = 'out_chunk.npy'
+        save(path, arr, shape=shape)
+        loaded_shape, loaded_arr = load(path, chunk_size=64)
+        assert loaded_shape == shape, (loaded_shape, shape)
+        assert list(arr) == list(loaded_arr), f"failed for size={size}"
+
 def main():
     tests = [
+        test_load_chunk_boundary,
         #test_reader_simple,
         test_writer_simple,
         test_supported_files,
